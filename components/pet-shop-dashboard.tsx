@@ -26,6 +26,22 @@ const SKILLS: Array<{ value: StaffSkill; label: string }> = [
   { value: "tosa-tesoura", label: "Tosa na Tesoura" }
 ];
 
+function normalizeStoredSettings(value: unknown): AppSettings {
+  const defaults = getDefaultSettings();
+
+  if (!value || typeof value !== "object") {
+    return defaults;
+  }
+
+  const parsed = value as Partial<AppSettings>;
+
+  return {
+    agendas: Array.isArray(parsed.agendas) ? parsed.agendas : defaults.agendas,
+    staff: Array.isArray(parsed.staff) ? parsed.staff : defaults.staff,
+    contacts: Array.isArray(parsed.contacts) ? parsed.contacts : defaults.contacts
+  };
+}
+
 function Card({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
   return (
     <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-panel">
@@ -419,7 +435,7 @@ export function PetShopDashboard() {
     const saved = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (saved) {
       try {
-        setSettings(JSON.parse(saved) as AppSettings);
+        setSettings(normalizeStoredSettings(JSON.parse(saved)));
       } catch {
         setSettings(getDefaultSettings());
       }
@@ -529,7 +545,7 @@ export function PetShopDashboard() {
     if (!normalizedPhone) return;
 
     setSettings((current) => {
-      const nextContacts = [...current.contacts];
+      const nextContacts = [...(current.contacts ?? [])];
       const existingIndex = nextContacts.findIndex(
         (contact) => contact.petName === petName && contact.clientName === (clientName ?? "")
       );
