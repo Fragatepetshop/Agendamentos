@@ -424,6 +424,7 @@ export function PetShopDashboard() {
   const [rankingMissingEnd, setRankingMissingEnd] = useState(formatDateKey(new Date()));
   const [checklistSearch, setChecklistSearch] = useState("");
   const [contactDrafts, setContactDrafts] = useState<Record<string, string>>({});
+  const [savingContactKey, setSavingContactKey] = useState<string | null>(null);
   const [settings, setSettings] = useState<AppSettings>(getDefaultSettings());
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
@@ -538,41 +539,68 @@ export function PetShopDashboard() {
     }
   };
 
-  const upsertContactPhone = (petName: string, clientName: string | null, phone: string) => {
+  const upsertContactPhone = async (petName: string, clientName: string | null, phone: string) => {
     const normalizedPhone = phone.trim();
     const contactKey = `${petName}|${clientName ?? ""}`;
 
     if (!normalizedPhone) return;
 
-    setSettings((current) => {
-      const nextContacts = [...(current.contacts ?? [])];
-      const existingIndex = nextContacts.findIndex(
-        (contact) => contact.petName === petName && contact.clientName === (clientName ?? "")
-      );
+    try {
+      setSavingContactKey(contactKey);
+      setError(null);
 
-      if (existingIndex >= 0) {
-        nextContacts[existingIndex] = {
-          ...nextContacts[existingIndex],
-          phone: normalizedPhone
-        };
-      } else {
-        nextContacts.push({
+      const response = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           petName,
           clientName: clientName ?? "",
           phone: normalizedPhone
-        });
+        })
+      });
+
+      const result = (await response.json().catch(() => ({}))) as { message?: string };
+
+      if (!response.ok) {
+        throw new Error(result.message || "Nao foi possivel salvar o telefone.");
       }
 
-      return {
-        ...current,
-        contacts: nextContacts
-      };
-    });
+      setSettings((current) => {
+        const nextContacts = [...(current.contacts ?? [])];
+        const existingIndex = nextContacts.findIndex(
+          (contact) => contact.petName === petName && contact.clientName === (clientName ?? "")
+        );
 
-    setContactDrafts((current) => ({
-      ...current,
-      [contactKey]: normalizedPhone
-    }));
+        if (existingIndex >= 0) {
+          nextContacts[existingIndex] = {
+            ...nextContacts[existingIndex],
+            phone: normalizedPhone
+          };
+        } else {
+          nextContacts.push({
+            petName,
+            clientName: clientName ?? "",
+            phone: normalizedPhone
+          });
+        }
+
+        return {
+          ...current,
+          contacts: nextContacts
+        };
+      });
+
+      setContactDrafts((current) => ({
+        ...current,
+        [contactKey]: normalizedPhone
+      }));
+
+      await fetchMetrics();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Erro ao salvar telefone");
+    } finally {
+      setSavingContactKey(null);
+    }
   };
 
   const updateAgenda = (agendaId: string, patch: Partial<AppSettings["agendas"][number]>) => {
@@ -1317,10 +1345,11 @@ export function PetShopDashboard() {
                               className="min-w-[280px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                             />
                             <button
-                              onClick={() => upsertContactPhone(item.petName, item.clientName, contactDrafts[key] ?? "")}
-                              className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white"
+                              onClick={() => void upsertContactPhone(item.petName, item.clientName, contactDrafts[key] ?? "")}
+                              disabled={savingContactKey === key}
+                              className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                              Salvar telefone
+                              {savingContactKey === key ? "Salvando..." : "Salvar telefone"}
                             </button>
                           </div>
                         </div>

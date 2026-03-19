@@ -36,6 +36,12 @@ export type AppSettings = {
   }>;
 };
 
+export type ContactRecord = {
+  petName: string;
+  clientName: string;
+  phone: string;
+};
+
 export type CalendarEvent = {
   id: string;
   agendaId: string;

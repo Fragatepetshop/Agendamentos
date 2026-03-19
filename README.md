@@ -201,3 +201,48 @@ Tambem foi incluida a distribuicao operacional da equipe em `lib/config.ts`:
 - O texto tambem varia entre varios modelos para reduzir repeticao
 - Quando existe telefone no titulo do agendamento, o painel ja monta o link para abrir no WhatsApp Web
 - Quando o telefone nao estiver no titulo, ele pode ser cadastrado manualmente na aba `WhatsApp`
+- No ambiente online, esse cadastro compartilhado usa `Vercel Postgres`
+
+### Worker local para WhatsApp Web
+
+O envio automatico pelo seu proprio WhatsApp precisa rodar em um computador local, nao na Vercel.
+
+Instale as dependencias novas:
+
+```bash
+npm install
+```
+
+Conecte seu WhatsApp Web uma vez:
+
+```bash
+npm run whatsapp:connect
+```
+
+Depois de escanear o QR code com o celular, a sessao fica salva no proprio computador.
+
+Para enviar os lembretes que estiverem `Prontos agora`:
+
+```bash
+npm run whatsapp:send
+```
+
+O worker:
+
+- le os compromissos elegiveis
+- usa as mensagens aleatorias ja preparadas pelo sistema
+- envia apenas os lembretes prontos
+- registra em `data/whatsapp-sent-log.json` para evitar envio duplicado
+
+Para automatizar, voce pode agendar `npm run whatsapp:send` no Agendador de Tarefas do Windows a cada 10 ou 15 minutos.
+
+### Telefones compartilhados na Vercel
+
+Para que os telefones cadastrados na aba `WhatsApp` fiquem salvos para todos os computadores:
+
+1. No projeto da Vercel, abra a aba `Storage`
+2. Crie um banco `Postgres`
+3. Conecte esse banco ao projeto
+4. A Vercel vai adicionar automaticamente as variaveis de ambiente do Postgres
+
+Depois disso, a rota `/api/contacts` passa a salvar e ler os telefones no banco, em vez de depender apenas do navegador local.

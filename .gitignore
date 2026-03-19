@@ -6,3 +6,6 @@ out
 .vercel
 .env.local
 .env
+.wwebjs_auth
+.wwebjs_cache
+data

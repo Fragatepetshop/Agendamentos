@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCalendarEvents } from "@/lib/calendar";
 import { fetchChecklistSummary } from "@/lib/checklist";
+import { listStoredContacts } from "@/lib/contact-store";
 import { buildDashboardPayload } from "@/lib/metrics";
 import { addDays, buildDateRangePreset, createZonedDate, endOfMonth, formatDateKey, startOfMonth } from "@/lib/date";
 import { AppSettings } from "@/lib/types";
@@ -64,15 +65,23 @@ function buildRanges(input: MetricsInput) {
 
 async function handleMetrics(input: MetricsInput) {
   const { selectedDate, selectedAgendaId, reportRange, rankingTopRange, rankingMissingRange, fetchStart, fetchEnd, settings } = buildRanges(input);
-  const [events, checklist] = await Promise.all([
+  const [events, checklist, storedContacts] = await Promise.all([
     fetchCalendarEvents(fetchStart, fetchEnd),
     fetchChecklistSummary().catch(() => ({
       totalEntries: 0,
       uniqueTutors: 0,
       uniquePets: 0,
       items: []
-    }))
+    })),
+    listStoredContacts().catch(() => [])
   ]);
+
+  const mergedSettings = settings
+    ? {
+        ...settings,
+        contacts: [...storedContacts, ...(settings.contacts ?? [])]
+      }
+    : undefined;
 
   return buildDashboardPayload(
     events,
@@ -80,7 +89,7 @@ async function handleMetrics(input: MetricsInput) {
     selectedAgendaId,
     reportRange.start,
     reportRange.end,
-    settings,
+    mergedSettings,
     rankingTopRange.start,
     rankingTopRange.end,
     rankingMissingRange.start,
