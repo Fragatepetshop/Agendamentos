@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { sql } from "@vercel/postgres";
+import { createPool } from "@vercel/postgres";
 import { ContactRecord } from "@/lib/types";
 
 const localDataDir = path.join(process.cwd(), "data");
@@ -15,12 +15,30 @@ function normalizeMatchValue(value: string | null | undefined) {
     .trim();
 }
 
+function getDatabaseUrl() {
+  return process.env.POSTGRES_URL || process.env.STORAGE_URL || process.env.DATABASE_URL || null;
+}
+
 function canUsePostgres() {
-  return Boolean(process.env.POSTGRES_URL);
+  return Boolean(getDatabaseUrl());
+}
+
+function getPool() {
+  const connectionString = getDatabaseUrl();
+
+  if (!connectionString) {
+    throw new Error("Banco de dados nao configurado.");
+  }
+
+  return createPool({
+    connectionString
+  });
 }
 
 async function ensureTable() {
-  await sql`
+  const pool = getPool();
+
+  await pool.sql`
     CREATE TABLE IF NOT EXISTS pet_shop_contacts (
       id SERIAL PRIMARY KEY,
       pet_name TEXT NOT NULL,
@@ -36,7 +54,8 @@ async function ensureTable() {
 
 async function listContactsFromPostgres(): Promise<ContactRecord[]> {
   await ensureTable();
-  const result = await sql<{
+  const pool = getPool();
+  const result = await pool.sql<{
     pet_name: string;
     client_name: string;
     phone: string;
@@ -55,8 +74,9 @@ async function listContactsFromPostgres(): Promise<ContactRecord[]> {
 
 async function saveContactToPostgres(contact: ContactRecord) {
   await ensureTable();
+  const pool = getPool();
 
-  await sql`
+  await pool.sql`
     INSERT INTO pet_shop_contacts (pet_name, client_name, phone, normalized_pet_name, normalized_client_name, updated_at)
     VALUES (
       ${contact.petName},
