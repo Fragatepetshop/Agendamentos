@@ -2,6 +2,7 @@ import { addDays, createZonedDate, formatDateKey } from "@/lib/date";
 
 type ParsedIcsEvent = {
   uid: string;
+  baseUid: string;
   summary: string;
   description: string;
   dtstart: string;
@@ -50,6 +51,10 @@ function parseDateValue(value: string) {
 
 function buildOccurrenceKey(value: string) {
   return parseDateValue(value).toISOString();
+}
+
+function normalizeUid(uid: string) {
+  return uid.replace(/_R\d{8}T\d{6}@google\.com$/i, "@google.com");
 }
 
 function parseRRule(rrule: string) {
@@ -151,7 +156,7 @@ export function parseIcsEvents(icsText: string, rangeStart: Date, rangeEnd: Date
 
   for (const line of lines) {
     if (line === "BEGIN:VEVENT") {
-      current = { uid: "", summary: "", description: "", dtstart: "", dtend: "", exdates: [] };
+      current = { uid: "", baseUid: "", summary: "", description: "", dtstart: "", dtend: "", exdates: [] };
       continue;
     }
 
@@ -166,7 +171,10 @@ export function parseIcsEvents(icsText: string, rangeStart: Date, rangeEnd: Date
     const { key, value } = parseKeyValue(line);
     const property = parsePropertyName(key);
 
-    if (property === "UID") current.uid = value;
+    if (property === "UID") {
+      current.uid = value;
+      current.baseUid = normalizeUid(value);
+    }
     if (property === "SUMMARY") current.summary = unescapeIcsText(value);
     if (property === "DESCRIPTION") current.description = unescapeIcsText(value);
     if (property === "DTSTART") current.dtstart = value;
@@ -182,9 +190,9 @@ export function parseIcsEvents(icsText: string, rangeStart: Date, rangeEnd: Date
 
   for (const event of events.filter((item) => item.recurrenceId)) {
     const key = buildOccurrenceKey(event.recurrenceId!);
-    const currentOverrides = overridesByUid.get(event.uid) ?? new Map<string, ParsedIcsEvent>();
+    const currentOverrides = overridesByUid.get(event.baseUid) ?? new Map<string, ParsedIcsEvent>();
     currentOverrides.set(key, event);
-    overridesByUid.set(event.uid, currentOverrides);
+    overridesByUid.set(event.baseUid, currentOverrides);
   }
 
   const seenOverrideKeys = new Set<string>();
@@ -195,10 +203,10 @@ export function parseIcsEvents(icsText: string, rangeStart: Date, rangeEnd: Date
 
     return expandRecurringEvent(event, rangeStart, rangeEnd).flatMap((occurrence, index) => {
       const occurrenceKey = occurrence.originalStart.toISOString();
-      const override = overridesByUid.get(event.uid)?.get(occurrenceKey);
+      const override = overridesByUid.get(event.baseUid)?.get(occurrenceKey);
 
       if (override) {
-        seenOverrideKeys.add(`${event.uid}|${occurrenceKey}`);
+        seenOverrideKeys.add(`${event.baseUid}|${occurrenceKey}`);
 
         if (override.status === "CANCELLED") {
           return [];
@@ -236,7 +244,7 @@ export function parseIcsEvents(icsText: string, rangeStart: Date, rangeEnd: Date
 
   const orphanOverrides = events
     .filter((event) => event.recurrenceId && event.status !== "CANCELLED")
-    .filter((event) => !seenOverrideKeys.has(`${event.uid}|${buildOccurrenceKey(event.recurrenceId!)}`))
+    .filter((event) => !seenOverrideKeys.has(`${event.baseUid}|${buildOccurrenceKey(event.recurrenceId!)}`))
     .flatMap((event, index) => {
       const start = parseDateValue(event.dtstart);
       const end = event.dtend ? parseDateValue(event.dtend) : start;
