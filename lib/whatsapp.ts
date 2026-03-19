@@ -4,12 +4,25 @@ import { parseEventTitle } from "@/lib/event-title";
 import { AppSettings, CalendarEvent, WhatsAppReminderItem, WhatsAppReminderStatus, WhatsAppReminderSummary } from "@/lib/types";
 
 const REMINDER_TEMPLATES = [
-  "Ola, {client}. Passando para lembrar do banho do {pet} {dayLabel} as {time}. Qualquer ajuste, me avise por aqui.",
-  "Oi, {client}! Tudo bem? Fica o lembrete do horario do {pet}: {dayLabel} as {time}. Estamos te esperando.",
-  "Ola! Confirmando o atendimento do {pet} {dayLabel} as {time}. Se precisar de algo, e so responder esta mensagem.",
-  "Oi, {client}. So para nao esquecer: o banho do {pet} esta marcado para {dayLabel} as {time}.",
-  "Tudo certinho por ai? O banho do {pet} acontece {dayLabel} as {time}. Se precisar remarcar, nos chame.",
-  "Passando para lembrar do compromisso do {pet}: {dayLabel} as {time}. Qualquer duvida, estou por aqui."
+  "Ola, {client}. Passando para lembrar do banho d{o(a)} {pet} {dayLabel} as {time}. Qualquer ajuste, me avise por aqui.",
+  "Oi, {client}! Tudo bem? Fica o lembrete do horario d{o(a)} {pet}: {dayLabel} as {time}. Estamos te esperando.",
+  "Ola! Confirmando o atendimento d{o(a)} {pet} {dayLabel} as {time}. Se precisar de algo, e so responder esta mensagem.",
+  "Oi, {client}. So para nao esquecer: o banho d{o(a)} {pet} esta marcado para {dayLabel} as {time}.",
+  "Tudo certinho por ai? O banho d{o(a)} {pet} acontece {dayLabel} as {time}. Se precisar remarcar, nos chame.",
+  "Passando para lembrar do compromisso d{o(a)} {pet}: {dayLabel} as {time}. Qualquer duvida, estou por aqui.",
+  "Ola, {client}. Seu horario para d{o(a)} {pet} esta confirmado para {dayLabel} as {time}.",
+  "Oi! Estamos passando para lembrar que d{o(a)} {pet} tem banho agendado {dayLabel} as {time}.",
+  "Tudo bem, {client}? Lembrando que d{o(a)} {pet} vem para o banho {dayLabel} as {time}.",
+  "Ola! O horario d{o(a)} {pet} esta reservado para {dayLabel} as {time}. Ficamos a disposicao.",
+  "Oi, {client}. Confirmando o banho d{o(a)} {pet} {dayLabel} as {time}. Estamos te aguardando.",
+  "Passando para avisar que o atendimento d{o(a)} {pet} sera {dayLabel} as {time}.",
+  "Ola, {client}! So reforcando o lembrete do banho d{o(a)} {pet}: {dayLabel} as {time}.",
+  "Oi! Nao se esqueca do horario d{o(a)} {pet} {dayLabel} as {time}. Qualquer necessidade, nos avise.",
+  "Tudo certo por ai? O banho d{o(a)} {pet} esta previsto para {dayLabel} as {time}.",
+  "Ola, {client}. Fica o lembrete do compromisso d{o(a)} {pet} {dayLabel} as {time}.",
+  "Oi, {client}! D{o(a)} {pet} esta com banho marcado para {dayLabel} as {time}. Esperamos voces.",
+  "Passando para confirmar que d{o(a)} {pet} sera atendid{o(a)} {dayLabel} as {time}.",
+  "Ola! A agenda d{o(a)} {pet} esta confirmada para {dayLabel} as {time}. Se precisar remarcar, nos chame."
 ];
 
 function hashValue(value: string) {
@@ -103,6 +116,7 @@ function buildReminderMessage(event: CalendarEvent, scheduledSendAt: Date) {
 
   return template
     .replace("{client}", parsed.clientName || "tudo bem")
+    .replace(/\{o\(a\)\}/g, "o(a)")
     .replace("{pet}", parsed.petName)
     .replace("{dayLabel}", buildDayLabel(scheduledSendAt, appointmentDate))
     .replace("{time}", formatTime(event.start));
