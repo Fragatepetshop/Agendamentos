@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CarFront, ChevronLeft, ChevronRight, ClipboardList, Download, LoaderCircle, Package, Phone, RefreshCw, Scissors, Settings2, TrendingUp, Trophy } from "lucide-react";
+import { CalendarDays, CarFront, ChevronLeft, ChevronRight, ClipboardList, Download, LoaderCircle, LogOut, Package, Phone, RefreshCw, Scissors, Settings2, TrendingUp, Trophy } from "lucide-react";
 import { AGENDAS, DAILY_POINT_LIMIT, STAFF, getDefaultSettings } from "@/lib/config";
 import { addDays, buildDateRangePreset, createZonedDate, formatDateKey, formatHumanDate, formatHumanDateTime, formatTime, getWorkingWindows } from "@/lib/date";
 import { parseEventTitle } from "@/lib/event-title";
@@ -481,6 +481,14 @@ export function PetShopDashboard() {
     }
   };
 
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.href = "/login";
+    }
+  };
+
   const updateAgenda = (agendaId: string, patch: Partial<AppSettings["agendas"][number]>) => {
     setSettings((current) => ({
       ...current,
@@ -553,6 +561,10 @@ export function PetShopDashboard() {
               <button onClick={() => void fetchMetrics()} className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white">
                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
                 Atualizar agendas
+              </button>
+              <button onClick={() => void logout()} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700">
+                <LogOut className="h-4 w-4" />
+                Sair
               </button>
               <div className="rounded-full bg-slate-100 px-4 py-3 text-sm text-slate-600">Ultima atualizacao: {payload ? formatHumanDateTime(payload.generatedAt) : "--"}</div>
             </div>

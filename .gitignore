@@ -4,3 +4,5 @@ dist-electron
 release
 out
 .vercel
+.env.local
+.env

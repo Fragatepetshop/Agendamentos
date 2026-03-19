@@ -36,14 +36,30 @@ Projeto web completo para leitura de agendas publicas do Google Calendar via `.i
 ## Como rodar localmente
 
 1. Instale o Node.js 20 ou superior.
-2. No diretorio do projeto, rode:
+2. Crie um arquivo `.env.local` com a senha de acesso:
+
+```bash
+APP_ACCESS_PASSWORD=sua-senha-forte
+APP_ACCESS_SECRET=uma-chave-opcional-para-reforcar-a-sessao
+```
+
+3. No diretorio do projeto, rode:
 
 ```bash
 npm install
 npm run dev
 ```
 
-3. Abra [http://localhost:3000](http://localhost:3000)
+4. Abra [http://localhost:3000](http://localhost:3000)
+
+## Acesso protegido por senha
+
+O sistema agora exige login por senha para abrir o painel e usar as APIs.
+
+- `APP_ACCESS_PASSWORD`: senha obrigatoria para entrar no sistema
+- `APP_ACCESS_SECRET`: chave adicional para reforcar a sessao por cookie
+
+Na Vercel, configure essas duas variaveis em `Project Settings` > `Environment Variables`.
 
 ## Versao Windows .exe
 
