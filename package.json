@@ -1,0 +1,76 @@
+{
+  "name": "pet-shop-agendamentos",
+  "version": "1.2.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:web": "next build",
+    "desktop:dev": "electron electron/main.cjs",
+    "prepare:desktop": "node scripts/prepare-electron.mjs",
+    "build:desktop": "npm run build:web && npm run prepare:desktop",
+    "dist:win": "npm run build:desktop && electron-builder --win nsis",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.5",
+    "@types/react-dom": "^19.1.5",
+    "autoprefixer": "^10.4.21",
+    "electron": "^35.1.4",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3"
+  },
+  "build": {
+    "appId": "com.petshop.agendamentos",
+    "productName": "Pet Shop Agendamentos",
+    "artifactName": "Instalador-Pet-Shop-Agendamentos-${version}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-electron",
+        "to": "dist-electron"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Pet Shop Agendamentos"
+    }
+  }
+}
