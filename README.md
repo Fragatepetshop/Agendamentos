@@ -20,6 +20,7 @@ Projeto web completo para leitura de agendas publicas do Google Calendar via `.i
 - Mostra relatorios com filtros e exportacao CSV
 - Mostra aba de agendamento com vagas simultaneas e proxima vaga disponivel
 - Mostra divisao sugerida por profissional e exportacao dessa divisao
+- Mostra fila de confirmacoes de WhatsApp com mensagem e horario aleatorios
 - Respeita o fuso `America/Sao_Paulo`
 - Ignora a pausa operacional entre `11:30` e `13:00`
 
@@ -191,3 +192,12 @@ Tambem foi incluida a distribuicao operacional da equipe em `lib/config.ts`:
 - Sabado: limite total de 20 pontos
 - Pode haver sobreposicao quando necessario, desde que o periodo nao ultrapasse o teto de pontos
 - O sistema gera uma divisao sugerida dos compromissos por profissional na data analisada
+
+## Confirmacoes por WhatsApp
+
+- A aba `WhatsApp` prepara confirmacoes para os proximos 7 dias
+- Cada mensagem e programada para 1 dia antes do compromisso
+- O horario do envio e sorteado de forma deterministica para nao mudar a cada recarga
+- O texto tambem varia entre varios modelos para reduzir repeticao
+- Quando existe telefone no titulo do agendamento, o painel ja monta o link para abrir no WhatsApp Web
+- Quando o telefone nao estiver no titulo, ele pode ser cadastrado manualmente na aba `WhatsApp`

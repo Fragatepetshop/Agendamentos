@@ -42,6 +42,7 @@ import {
   TaxiScheduleItem
 } from "@/lib/types";
 import { parseEventTitle } from "@/lib/event-title";
+import { buildWhatsAppReminders } from "@/lib/whatsapp";
 import { getCapacityStatus, roundPoints, toPercent } from "@/lib/utils";
 
 function normalizeMatchValue(value: string | null | undefined) {
@@ -816,6 +817,7 @@ export function buildDashboardPayload(
   const taxiSchedule = buildTaxiSchedule(events, availabilityDateKey);
   const packageClients = buildPackageClients(events, now);
   const pendingForms = buildPendingForms(events, checklist, now);
+  const whatsappReminders = buildWhatsAppReminders(events, now, settings);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -836,6 +838,7 @@ export function buildDashboardPayload(
     packageClients,
     checklist: checklist ?? { totalEntries: 0, uniqueTutors: 0, uniquePets: 0, items: [] },
     pendingForms,
+    whatsappReminders,
     events
   };
 }

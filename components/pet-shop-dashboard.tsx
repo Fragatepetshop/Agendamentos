@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CarFront, ChevronLeft, ChevronRight, ClipboardList, Download, LoaderCircle, LogOut, Package, Phone, RefreshCw, Scissors, Settings2, TrendingUp, Trophy } from "lucide-react";
+import { CalendarDays, CarFront, ChevronLeft, ChevronRight, ClipboardList, Download, LoaderCircle, LogOut, MessageCircle, Package, Phone, RefreshCw, Scissors, Settings2, TrendingUp, Trophy } from "lucide-react";
 import { AGENDAS, DAILY_POINT_LIMIT, STAFF, getDefaultSettings } from "@/lib/config";
 import { addDays, buildDateRangePreset, createZonedDate, formatDateKey, formatHumanDate, formatHumanDateTime, formatTime, getWorkingWindows } from "@/lib/date";
 import { parseEventTitle } from "@/lib/event-title";
 import { AppSettings, DashboardPayload, StaffSkill } from "@/lib/types";
 import { cn, downloadFile, formatNumber, formatPoints, statusLabel } from "@/lib/utils";
 
-type TabKey = "dashboard" | "relatorios" | "agenda" | "agendamento" | "equipe" | "taxi" | "pacotes" | "ranking" | "checklist" | "pendencias-formulario" | "configuracoes";
+type TabKey = "dashboard" | "relatorios" | "agenda" | "agendamento" | "equipe" | "taxi" | "pacotes" | "ranking" | "whatsapp" | "checklist" | "pendencias-formulario" | "configuracoes";
 type PresetKey = "hoje" | "ontem" | "esta-semana" | "este-mes" | "mes-anterior" | "personalizado";
 
 const SETTINGS_STORAGE_KEY = "pet-shop-settings-v1";
@@ -202,6 +202,21 @@ function formatLongDate(dateKey: string) {
   }).format(createZonedDate(dateKey));
 }
 
+function whatsappStatusCopy(status: DashboardPayload["whatsappReminders"]["items"][number]["status"]) {
+  switch (status) {
+    case "pronto":
+      return { label: "Pronto para envio", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" };
+    case "agendado":
+      return { label: "Agendado", className: "bg-sky-50 text-sky-700 border border-sky-200" };
+    case "sem-telefone":
+      return { label: "Sem telefone", className: "bg-amber-50 text-amber-700 border border-amber-200" };
+    case "expirado":
+      return { label: "Janela expirada", className: "bg-slate-100 text-slate-600 border border-slate-200" };
+    default:
+      return { label: status, className: "bg-slate-100 text-slate-600 border border-slate-200" };
+  }
+}
+
 function buildOverlappingColumns<T extends { startDate: Date; endDate: Date }>(items: T[]) {
   const sorted = [...items].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
   const positioned: Array<T & { column: number; totalColumns: number }> = [];
@@ -392,6 +407,7 @@ export function PetShopDashboard() {
   const [rankingMissingStart, setRankingMissingStart] = useState(formatDateKey(new Date(new Date().setMonth(new Date().getMonth() - 6))));
   const [rankingMissingEnd, setRankingMissingEnd] = useState(formatDateKey(new Date()));
   const [checklistSearch, setChecklistSearch] = useState("");
+  const [contactDrafts, setContactDrafts] = useState<Record<string, string>>({});
   const [settings, setSettings] = useState<AppSettings>(getDefaultSettings());
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
@@ -415,6 +431,23 @@ export function PetShopDashboard() {
     if (!settingsLoaded) return;
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   }, [settings, settingsLoaded]);
+
+  useEffect(() => {
+    if (!payload) return;
+
+    setContactDrafts((current) => {
+      const next = { ...current };
+
+      for (const item of payload.whatsappReminders.items.filter((reminder) => !reminder.phone)) {
+        const key = `${item.petName}|${item.clientName ?? ""}`;
+        if (!(key in next)) {
+          next[key] = "";
+        }
+      }
+
+      return next;
+    });
+  }, [payload]);
 
   useEffect(() => {
     if (preset === "personalizado") return;
@@ -487,6 +520,43 @@ export function PetShopDashboard() {
     } finally {
       window.location.href = "/login";
     }
+  };
+
+  const upsertContactPhone = (petName: string, clientName: string | null, phone: string) => {
+    const normalizedPhone = phone.trim();
+    const contactKey = `${petName}|${clientName ?? ""}`;
+
+    if (!normalizedPhone) return;
+
+    setSettings((current) => {
+      const nextContacts = [...current.contacts];
+      const existingIndex = nextContacts.findIndex(
+        (contact) => contact.petName === petName && contact.clientName === (clientName ?? "")
+      );
+
+      if (existingIndex >= 0) {
+        nextContacts[existingIndex] = {
+          ...nextContacts[existingIndex],
+          phone: normalizedPhone
+        };
+      } else {
+        nextContacts.push({
+          petName,
+          clientName: clientName ?? "",
+          phone: normalizedPhone
+        });
+      }
+
+      return {
+        ...current,
+        contacts: nextContacts
+      };
+    });
+
+    setContactDrafts((current) => ({
+      ...current,
+      [contactKey]: normalizedPhone
+    }));
   };
 
   const updateAgenda = (agendaId: string, patch: Partial<AppSettings["agendas"][number]>) => {
@@ -589,6 +659,7 @@ export function PetShopDashboard() {
             { key: "taxi", label: "Taxi Dog", icon: CarFront },
             { key: "pacotes", label: "Pacotes", icon: Package },
             { key: "ranking", label: "Ranking", icon: Trophy },
+            { key: "whatsapp", label: "WhatsApp", icon: MessageCircle },
             { key: "checklist", label: "Checklist", icon: ClipboardList },
             { key: "pendencias-formulario", label: "Pendencias Form", icon: Phone },
             { key: "configuracoes", label: "Configuracoes", icon: Settings2 }
@@ -1172,6 +1243,132 @@ export function PetShopDashboard() {
                   )}
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {!loading && payload && activeTab === "whatsapp" && (
+          <section className="mt-8 space-y-6">
+            <SectionTitle title="WhatsApp" subtitle="Fila de confirmacoes para o dia anterior ao banho, com mensagem e horario aleatorios." />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Card title="Confirmacoes" value={formatNumber(payload.whatsappReminders.total)} subtitle="Proximos 7 dias" />
+              <Card title="Prontos agora" value={formatNumber(payload.whatsappReminders.dueNow)} subtitle="Ja podem ser enviados" />
+              <Card title="Agendados" value={formatNumber(payload.whatsappReminders.scheduled)} subtitle="Aguardando horario sorteado" />
+              <Card title="Sem telefone" value={formatNumber(payload.whatsappReminders.withoutPhone)} subtitle="Precisam de ajuste na agenda" />
+            </div>
+
+            <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-panel">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                O sistema prepara confirmacoes para os proximos 7 dias, sempre com disparo programado para 1 dia antes e mensagem variada para reduzir repeticao.
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-panel">
+              <h3 className="text-lg font-semibold text-ink">Cadastro de telefones</h3>
+              <p className="mt-1 text-sm text-slate-500">Use este espaco para salvar o telefone do cliente quando ele nao estiver no titulo do agendamento.</p>
+
+              <div className="mt-4 space-y-3">
+                {payload.whatsappReminders.items.filter((item) => !item.phone).length === 0 && (
+                  <p className="text-sm text-slate-500">Todos os lembretes da janela atual ja possuem telefone.</p>
+                )}
+
+                {payload.whatsappReminders.items
+                  .filter((item) => !item.phone)
+                  .map((item) => {
+                    const key = `${item.petName}|${item.clientName ?? ""}`;
+
+                    return (
+                      <div key={`${item.eventId}-contact`} className="rounded-2xl bg-slate-50 p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                          <div>
+                            <p className="font-medium text-ink">{item.petName}</p>
+                            <p className="text-sm text-slate-500">{item.clientName ?? "Cliente nao identificado"}</p>
+                            <p className="text-sm text-slate-500">{formatHumanDate(formatDateKey(new Date(item.start)))} as {formatTime(item.start)}</p>
+                          </div>
+
+                          <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row">
+                            <input
+                              type="text"
+                              inputMode="tel"
+                              value={contactDrafts[key] ?? ""}
+                              onChange={(event) =>
+                                setContactDrafts((current) => ({
+                                  ...current,
+                                  [key]: event.target.value
+                                }))
+                              }
+                              placeholder="Digite o telefone do cliente"
+                              className="min-w-[280px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                            />
+                            <button
+                              onClick={() => upsertContactPhone(item.petName, item.clientName, contactDrafts[key] ?? "")}
+                              className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white"
+                            >
+                              Salvar telefone
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {payload.whatsappReminders.items.length === 0 && (
+                <div className="rounded-3xl border border-white/70 bg-white/90 p-5 text-sm text-slate-500 shadow-panel">
+                  Nenhuma confirmacao encontrada na janela atual.
+                </div>
+              )}
+
+              {payload.whatsappReminders.items.map((item) => {
+                const status = whatsappStatusCopy(item.status);
+
+                return (
+                  <div key={`${item.eventId}-whatsapp`} className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-panel">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">Confirmacao WhatsApp</p>
+                          <span className={cn("rounded-full px-3 py-1 text-xs font-medium", status.className)}>{status.label}</span>
+                        </div>
+                        <h3 className="mt-2 text-xl font-semibold text-ink">{item.petName}</h3>
+                        <p className="text-sm text-slate-500">{item.clientName ?? "Cliente nao identificado"}</p>
+                        <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
+                          <span>{item.phone ?? "Sem telefone"}</span>
+                          <span>{item.agendaName}</span>
+                          <span>{formatHumanDate(formatDateKey(new Date(item.start)))}</span>
+                          <span>{formatTime(item.start)} - {formatTime(item.end)}</span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <p className="font-medium text-ink">Programado para</p>
+                        <p className="mt-1">{formatHumanDateTime(item.scheduledSendAt)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Mensagem sorteada</p>
+                      <p className="mt-2 text-sm text-slate-700">{item.message ?? "Nao foi possivel gerar a mensagem sem telefone valido."}</p>
+                    </div>
+
+                    {item.whatsappUrl && (
+                      <div className="mt-4">
+                        <a
+                          href={item.whatsappUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-medium text-white"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Abrir no WhatsApp Web
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}

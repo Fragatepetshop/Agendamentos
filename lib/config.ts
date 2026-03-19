@@ -16,6 +16,7 @@ export const WEEKDAY_AFTERNOON_POINT_LIMIT = 25;
 export const SATURDAY_POINT_LIMIT = 20;
 export const GOOGLE_FORMS_SHEET_ID = "1mVM-qQ6ka412NXM_Q8ldhCCa4InMms0t7pypVE6wtNk";
 export const GOOGLE_FORMS_SHEET_NAME = "Forms_Responses";
+export const WHATSAPP_REMINDER_LOOKAHEAD_DAYS = 7;
 
 export const STAFF: StaffMember[] = [
   { id: "bruna", name: "Bruna", skills: ["banho", "tosa-tesoura"], color: "#BE123C" },
@@ -93,7 +94,8 @@ export function getDefaultSettings(): AppSettings {
     staff: STAFF.map((member) => ({
       id: member.id,
       skills: [...member.skills]
-    }))
+    })),
+    contacts: []
   };
 }
 

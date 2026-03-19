@@ -29,6 +29,11 @@ export type AppSettings = {
     id: string;
     skills: StaffSkill[];
   }>;
+  contacts: Array<{
+    petName: string;
+    clientName: string;
+    phone: string;
+  }>;
 };
 
 export type CalendarEvent = {
@@ -224,6 +229,32 @@ export type FormPendingSummary = {
   items: FormPendingItem[];
 };
 
+export type WhatsAppReminderStatus = "agendado" | "pronto" | "sem-telefone" | "expirado";
+
+export type WhatsAppReminderItem = {
+  eventId: string;
+  title: string;
+  petName: string;
+  clientName: string | null;
+  phone: string | null;
+  agendaName: string;
+  start: string;
+  end: string;
+  scheduledSendAt: string;
+  message: string | null;
+  whatsappUrl: string | null;
+  status: WhatsAppReminderStatus;
+};
+
+export type WhatsAppReminderSummary = {
+  total: number;
+  dueNow: number;
+  scheduled: number;
+  withoutPhone: number;
+  expired: number;
+  items: WhatsAppReminderItem[];
+};
+
 export type DashboardPayload = {
   generatedAt: string;
   timezone: string;
@@ -243,5 +274,6 @@ export type DashboardPayload = {
   packageClients: PackageClientItem[];
   checklist: ChecklistSummary;
   pendingForms: FormPendingSummary;
+  whatsappReminders: WhatsAppReminderSummary;
   events: CalendarEvent[];
 };
